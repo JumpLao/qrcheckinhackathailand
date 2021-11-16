@@ -12,6 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: yarn && yarn build
+        env:
+          REACT_APP_LINE_LIFF_ID: 1656636515-OwXK0mqM
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'

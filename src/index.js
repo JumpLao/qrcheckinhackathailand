@@ -12,7 +12,7 @@ const liffConfig = {
 }
 liff.init(liffConfig).then(() => {
   ReactDOM.render(
-    <LiffProvider stubEnabled={{
+    <LiffProvider liffId={liffId} stubEnabled={{
       ...liff,
       login: () => {
         return liff.login({

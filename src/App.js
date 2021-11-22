@@ -1,9 +1,9 @@
-import { Button, Col, Layout, Result, Row, Skeleton, Form, Input } from 'antd';
+import { Button, Col, Layout, Result, Row, Skeleton, Form, Input, Spin } from 'antd';
 import './App.less'
-import React, { useCallback, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useLiff } from 'react-liff';
 import axios from 'axios';
-import { useAsync, useLocalStorage } from 'react-use';
+import { useAsync, useAsyncFn, useLocalStorage } from 'react-use';
 import _ from 'lodash'
 import qs from 'qs'
 
@@ -27,7 +27,14 @@ const App = () => {
     return event
   }, [APIKey])
   
-  const handleScanCode = useCallback(async () => {
+  const [
+    {
+      loading: scanCodeLoading,
+      value: checkInResult,
+      error: scanCodeError
+    },
+    handleScanCode
+  ] = useAsyncFn(async () => {
     if (!event) {
       return Promise.resolve()
     }
@@ -46,7 +53,7 @@ const App = () => {
       // get attendee info
       // https://hackathailand.com/wp-json/wp/v2/tribe_rsvp_attendees?meta_key[]=_tribe_rsvp_event&meta_value[]=11067&meta_key[]=_tribe_rsvp_security_code&meta_value[]=390d6f7dd2
       debugger
-      const attendees = await axios.get(`https://hackathailand.com/wp-json/wp/v2/tribe_rsvp_attendees?meta_key[]=_tribe_rsvp_event&meta_value[]=${event.id}&meta_key[]=_tribe_tickets_attendee_user_id&meta_value[]=${userid}`).then(res => res.data)
+      const attendees = await axios.get(`https://hackathailand.com/wp-json/wp/v2/tribe_rsvp_attendees?meta_query[relation]=AND&meta_query[0][key]=_tribe_tickets_attendee_user_id&meta_query[0][value]=${userid}&meta_query[0][key]=_tribe_rsvp_event&meta_query[0][value]=${event.id}`).then(res => res.data)
       const checkinResult = await Promise.all(attendees.map(async attendee => {
         const {
           _tribe_rsvp_security_code: securityCode,
@@ -72,18 +79,12 @@ const App = () => {
         }
       }))
       console.log(checkinResult)
-      debugger
+      return Promise.resolve(checkinResult)
     } catch (e) {
-      console.error(e)
-      debugger
+      console.log(e)
+      return Promise.reject(e)
     }
-    handleScanCode()
   }, [event, liff, APIKey])
-  useEffect(() => {
-    if (event) {
-      handleScanCode()
-    }
-  }, [event, handleScanCode])
   if (!ready) {
     return <Skeleton />
   }
@@ -116,24 +117,36 @@ const App = () => {
   if (!event) {
     return <Skeleton />
   }
+  if (scanCodeError) {
+    console.log(scanCodeError)
+    debugger
+  }
   return (
     <React.Fragment>
-      <Layout style={{minHeight: '100vh'}}>
-        <Layout.Content style={{padding: 40}}>
-          <Row justify="center">
-            <Col>
-              <Button onClick={handleScanCode}>Scan Code</Button>
-            </Col>
-          </Row>
-        </Layout.Content>
-        <Layout.Footer>
-          <Row justify="end">
-            <Col>
-              <Button danger type="primary" onClick={() => removeAPIKey()}>Logout</Button>
-            </Col>
-          </Row>
-        </Layout.Footer>
-      </Layout>
+      <Spin spinning={scanCodeLoading}>
+        <Layout style={{minHeight: '100vh'}}>
+          <Layout.Content style={{padding: 40}}>
+            <Row justify="center">
+              <Col>
+                <Button onClick={handleScanCode}>Scan Code</Button>
+              </Col>
+            </Row>
+            {
+              scanCodeError && <Result status="error" title="Already checked in"/>
+            }
+            {
+              checkInResult && <Result status="success" title="Checked in"/>
+            }
+          </Layout.Content>
+          <Layout.Footer>
+            <Row justify="end">
+              <Col>
+                <Button danger type="primary" onClick={() => removeAPIKey()}>Logout</Button>
+              </Col>
+            </Row>
+          </Layout.Footer>
+        </Layout>
+      </Spin>
     </React.Fragment>
   );
 }

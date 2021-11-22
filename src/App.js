@@ -1,6 +1,6 @@
 import { Button, Col, Layout, Result, Row, Skeleton, Form, Input } from 'antd';
 import './App.less'
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useLiff } from 'react-liff';
 import axios from 'axios';
 import { useAsync, useLocalStorage } from 'react-use';
@@ -26,13 +26,8 @@ const App = () => {
     const event = _.get(result, 0)
     return event
   }, [APIKey])
-  useEffect(() => {
-    if (event) {
-      handleScanCode()
-    }
-  }, [event])
   
-  const handleScanCode = async () => {
+  const handleScanCode = useCallback(async () => {
     if (!event) {
       return Promise.resolve()
     }
@@ -41,10 +36,10 @@ const App = () => {
       const url = new URL(result.value)
       const {
         userid,
-        event_qr_code,
-        ticket_id,
-        event_id,
-        security_code,
+        // event_qr_code,
+        // ticket_id,
+        // event_id,
+        // security_code,
       } = qs.parse(url.search, {
         ignoreQueryPrefix: true
       })
@@ -83,7 +78,12 @@ const App = () => {
       debugger
     }
     handleScanCode()
-  }
+  }, [event, liff, APIKey])
+  useEffect(() => {
+    if (event) {
+      handleScanCode()
+    }
+  }, [event, handleScanCode])
   if (!ready) {
     return <Skeleton />
   }
